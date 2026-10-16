@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { Body, Button, Field, Screen } from '@/components/ui';
+import { AuthConfig } from '@/constants/config';
 import { Colors, FontSize, Spacing } from '@/constants/theme';
 import { supabase } from '@/lib/supabase';
 
@@ -17,7 +18,7 @@ export default function LoginScreen() {
     setLoading(false);
     if (!error) return; // 로그인되면 자동으로 홈으로 이동해요.
 
-    if (error.code === 'email_not_confirmed') {
+    if (AuthConfig.emailOtp && error.code === 'email_not_confirmed') {
       await supabase.auth.resend({ type: 'signup', email: email.trim() });
       router.push({ pathname: '/verify', params: { email: email.trim() } });
       return;
@@ -52,9 +53,12 @@ export default function LoginScreen() {
         <Link href="/signup" style={styles.link}>
           처음이에요 (회원가입)
         </Link>
-        <Link href="/forgot" style={styles.linkSoft}>
-          비밀번호를 잊었어요
-        </Link>
+        {/* 비밀번호 재설정도 메일 코드가 필요해서, 코드 인증을 켰을 때만 보여줘요. */}
+        {AuthConfig.emailOtp ? (
+          <Link href="/forgot" style={styles.linkSoft}>
+            비밀번호를 잊었어요
+          </Link>
+        ) : null}
       </View>
     </Screen>
   );

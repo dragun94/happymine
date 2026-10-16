@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Alert } from 'react-native';
 
 import { Body, Button, Field, Screen, Title } from '@/components/ui';
+import { AuthConfig } from '@/constants/config';
 import { supabase } from '@/lib/supabase';
 
 export default function SignupScreen() {
@@ -27,9 +28,17 @@ export default function SignupScreen() {
       Alert.alert('가입하지 못했어요', error.message);
       return;
     }
-    // 이메일 인증이 켜져 있으면 session 이 없어요 → 코드 입력 화면으로.
-    if (!data.session) {
+    // session 이 있으면 바로 로그인된 거예요 → 자동으로 홈으로 이동해요.
+    if (data.session) return;
+
+    // session 이 없으면 Supabase 에서 이메일 인증(Confirm email)이 켜져 있다는 뜻이에요.
+    if (AuthConfig.emailOtp) {
       router.replace({ pathname: '/verify', params: { email: email.trim() } });
+    } else {
+      Alert.alert(
+        '바로 로그인되지 않았어요',
+        'Supabase 의 "Confirm email" 설정이 켜져 있는지 확인해 주세요. (개발 중에는 꺼 두어야 해요)',
+      );
     }
   };
 
