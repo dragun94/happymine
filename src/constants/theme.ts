@@ -12,6 +12,7 @@ export const Colors = {
   green: '#7BC67E',
   greenSoft: '#E3F4E2',
   danger: '#E5736B',
+  soil: '#C9A27E', // 나무 아래 흙
   white: '#FFFFFF',
 } as const;
 

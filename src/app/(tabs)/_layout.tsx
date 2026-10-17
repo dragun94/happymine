@@ -26,7 +26,7 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="plant"
-        options={{ title: '심기', tabBarIcon: ({ focused }) => <TabIcon emoji="🌱" focused={focused} /> }}
+        options={{ title: '지뢰', tabBarIcon: ({ focused }) => <TabIcon emoji="🌱" focused={focused} /> }}
       />
       <Tabs.Screen
         name="records"

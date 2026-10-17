@@ -1,9 +1,10 @@
-import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { MonthCalendar } from '@/components/month-calendar';
+import { TimeInput } from '@/components/time-input';
+import { WheelPicker } from '@/components/wheel-picker';
 import { Body, Button, Card, Field, Label, Screen, Segmented, Stepper, Title, ToggleRow } from '@/components/ui';
 import { Colors, FontSize, Radius, Spacing } from '@/constants/theme';
 import { usePlantMine, useProfile, useSuggestions } from '@/hooks/queries';
@@ -18,11 +19,16 @@ import {
   kstAt,
   kstDateKey,
   pickRandomTime,
-  TZ,
+  to12h,
+  to24h,
 } from '@/lib/time';
 
 type WhatMode = 'custom' | 'suggest' | 'surprise';
 type TimeMode = 'manual' | 'random';
+
+const AMPM = [0, 1]; // 0 = 오전, 1 = 오후
+const HOURS = Array.from({ length: 12 }, (_, i) => i + 1);
+const MINUTES = Array.from({ length: 60 }, (_, i) => i);
 
 /** 지금부터 1시간 뒤를 10분 단위로 올림한 시각 */
 function defaultTime() {
@@ -45,7 +51,6 @@ export default function PlantScreen() {
   const [timeMode, setTimeMode] = useState<TimeMode>('manual');
   const [hour, setHour] = useState(() => defaultTime().hour());
   const [minute, setMinute] = useState(() => defaultTime().minute());
-  const [showIosPicker, setShowIosPicker] = useState(false);
   // 직접 바꾸기 전까지는 설정의 기본 랜덤 범위를 써요.
   const [rangeStartEdit, setRangeStart] = useState<number | null>(null);
   const [rangeEndEdit, setRangeEnd] = useState<number | null>(null);
@@ -58,25 +63,6 @@ export default function PlantScreen() {
   const today = kstDateKey();
   const tomorrow = kstDateKey(kst().add(1, 'day'));
   const pickedTime = kstAt(dateKey, hour, minute);
-
-  const onTimeChange = (date: Date) => {
-    const t = kst(date);
-    setHour(t.hour());
-    setMinute(t.minute());
-  };
-
-  const openTimePicker = () => {
-    if (Platform.OS === 'android') {
-      DateTimePickerAndroid.open({
-        value: pickedTime.toDate(),
-        mode: 'time',
-        timeZoneName: TZ,
-        onValueChange: (_e, date) => onTimeChange(date),
-      });
-    } else {
-      setShowIosPicker((v) => !v);
-    }
-  };
 
   const reset = () => {
     setContent('');
@@ -215,19 +201,31 @@ export default function PlantScreen() {
         />
         {timeMode === 'manual' ? (
           <>
-            <Pressable onPress={openTimePicker} style={styles.timeButton}>
-              <Text style={styles.timeText}>{formatTime(pickedTime)}</Text>
-            </Pressable>
-            {Platform.OS === 'ios' && showIosPicker && (
-              <DateTimePicker
-                value={pickedTime.toDate()}
-                mode="time"
-                display="spinner"
-                locale="ko-KR"
-                timeZoneName={TZ}
-                onValueChange={(_e, date) => onTimeChange(date)}
+            <TimeInput
+              label={formatTime(pickedTime)}
+              hour={hour}
+              minute={minute}
+              onChange={(h, m) => {
+                setHour(h);
+                setMinute(m);
+              }}
+            />
+            <View style={styles.wheels}>
+              <WheelPicker
+                values={AMPM}
+                value={to12h(hour).pm ? 1 : 0}
+                onChange={(v) => setHour(to24h(v === 1, to12h(hour).h12))}
+                format={(v) => (v === 1 ? '오후' : '오전')}
               />
-            )}
+              <WheelPicker
+                values={HOURS}
+                value={to12h(hour).h12}
+                onChange={(v) => setHour(to24h(to12h(hour).pm, v))}
+                format={String}
+                unit="시"
+              />
+              <WheelPicker values={MINUTES} value={minute} onChange={setMinute} unit="분" />
+            </View>
           </>
         ) : (
           <>
@@ -275,12 +273,5 @@ const styles = StyleSheet.create({
   },
   chipActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
   chipText: { fontSize: FontSize.sm, color: Colors.text },
-  timeButton: {
-    alignSelf: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.pill,
-    backgroundColor: Colors.yellowSoft,
-  },
-  timeText: { fontSize: FontSize.xl, fontWeight: '800', color: Colors.text },
+  wheels: { flexDirection: 'row', gap: Spacing.sm },
 });

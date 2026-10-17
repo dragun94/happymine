@@ -37,10 +37,9 @@ export default function HomeScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={Colors.primary} />}>
-        <View style={{ gap: 2 }}>
-          <Text style={styles.date}>{formatDay(today)}</Text>
-          <Text style={styles.greeting}>오늘도 작은 행복을 기다려요 ☀️</Text>
-        </View>
+        <Text style={styles.greeting}>일상에 작은 행복 같이 피워보아요 ☀️</Text>
+
+        <TreeCard tree={tree} />
 
         {next ? <NextMine mine={next} now={now} /> : <EmptyNext />}
 
@@ -52,8 +51,6 @@ export default function HomeScreen() {
             ))}
           </View>
         )}
-
-        <TreeCard tree={tree} />
 
         <View style={{ gap: Spacing.sm }}>
           <Label>오늘의 행복지뢰</Label>
@@ -102,7 +99,6 @@ function EmptyNext() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
   content: { padding: Spacing.md, paddingBottom: Spacing.xl * 2, gap: Spacing.lg },
-  date: { fontSize: FontSize.sm, color: Colors.textSoft },
   greeting: { fontSize: FontSize.xl, fontWeight: '800', color: Colors.text },
   next: { alignItems: 'center', paddingVertical: Spacing.lg, borderRadius: Radius.lg },
   nextLabel: { fontSize: FontSize.md, color: Colors.primary, fontWeight: '700' },

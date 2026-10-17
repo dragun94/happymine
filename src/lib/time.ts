@@ -1,17 +1,22 @@
 import dayjs, { type Dayjs } from 'dayjs';
 import 'dayjs/locale/ko';
-import timezone from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
 
 dayjs.extend(utc);
-dayjs.extend(timezone);
 dayjs.locale('ko');
 
-// 앱 전체를 한국 시간 기준으로 계산해요.
-export const TZ = 'Asia/Seoul';
+// 앱 전체를 한국 시간(UTC+9) 기준으로 계산해요.
+// 한국은 서머타임이 없어서 +9시간 고정으로 충분해요.
+// (dayjs timezone 플러그인은 폰(Hermes)에서 Invalid Date 를 만들어서 쓰지 않아요.)
+const KST_OFFSET_MIN = 9 * 60;
+const DATE_KEY = /^\d{4}-\d{2}-\d{2}$/;
 
 export function kst(date?: string | number | Date | Dayjs) {
-  return dayjs(date).tz(TZ);
+  // 'YYYY-MM-DD' 는 한국 날짜의 0시로 읽어요.
+  if (typeof date === 'string' && DATE_KEY.test(date)) {
+    return dayjs.utc(`${date}T00:00:00`).subtract(KST_OFFSET_MIN, 'minute').utcOffset(KST_OFFSET_MIN);
+  }
+  return dayjs(date).utcOffset(KST_OFFSET_MIN);
 }
 
 /** 'YYYY-MM-DD' 형식의 한국 날짜 */
@@ -22,7 +27,7 @@ export function kstDateKey(date?: string | number | Date | Dayjs) {
 /** 한국 날짜 + 시/분 → 실제 시각 */
 export function kstAt(dateKey: string, hour: number, minute: number) {
   // hour 가 24 이면 다음 날 0시예요 (랜덤 범위 끝을 '24시'로 쓸 수 있게).
-  return dayjs.tz(`${dateKey} 00:00`, TZ).add(hour, 'hour').add(minute, 'minute');
+  return kst(dateKey).add(hour, 'hour').add(minute, 'minute');
 }
 
 /** 시(hour)를 DB의 time 형식으로: 9 → '09:00' */
@@ -35,6 +40,16 @@ export function formatHour(hour: number) {
   if (hour === 0 || hour === 24) return '밤 12시';
   if (hour === 12) return '낮 12시';
   return hour < 12 ? `오전 ${hour}시` : `오후 ${hour - 12}시`;
+}
+
+/** 0~23 시 → { pm: 오후인지, h12: 1~12 } */
+export function to12h(hour: number) {
+  return { pm: hour >= 12, h12: hour % 12 === 0 ? 12 : hour % 12 };
+}
+
+/** 오전/오후 + 1~12 시 → 0~23 시 */
+export function to24h(pm: boolean, h12: number) {
+  return (h12 % 12) + (pm ? 12 : 0);
 }
 
 /** DB의 time 값('10:00:00')에서 시(hour)만 꺼내요 */

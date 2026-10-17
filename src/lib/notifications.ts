@@ -7,16 +7,20 @@ import { PRE_NOTICE_MS, type Mine } from './mines';
 const CHANNEL_ID = 'mines';
 // 아이폰은 예약 알림이 최대 64개라서 가까운 지뢰부터 이만큼만 예약해요 (지뢰 1개 = 알림 2개).
 const MAX_MINES = 30;
+// 웹 미리보기에서는 예약 알림을 쓸 수 없어서 알림 기능을 건너뛰어요.
+const IS_WEB = Platform.OS === 'web';
 
 // 앱이 켜져 있을 때도 알림을 보여줘요.
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+if (!IS_WEB) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 export async function setupNotificationChannel() {
   if (Platform.OS === 'android') {
@@ -28,12 +32,14 @@ export async function setupNotificationChannel() {
 }
 
 export async function getPermissionGranted() {
+  if (IS_WEB) return false;
   const { granted } = await Notifications.getPermissionsAsync();
   return granted;
 }
 
 /** 알림 권한을 요청해요. 이미 거절했다면 다시 묻지 않고 false 를 돌려줘요. */
 export async function requestPermission() {
+  if (IS_WEB) return false;
   await setupNotificationChannel();
   const current = await Notifications.getPermissionsAsync();
   if (current.granted) return true;
@@ -52,7 +58,7 @@ function copyFor(mine: Mine) {
 }
 
 export async function scheduleMine(mine: Mine) {
-  if (mine.completed_at) return;
+  if (IS_WEB || mine.completed_at) return;
   const at = new Date(mine.scheduled_at).getTime();
   const now = Date.now();
   const copy = copyFor(mine);
@@ -83,6 +89,7 @@ export async function scheduleMine(mine: Mine) {
 }
 
 export async function cancelMine(mineId: string) {
+  if (IS_WEB) return;
   await Notifications.cancelScheduledNotificationAsync(`${mineId}-pre`);
   await Notifications.cancelScheduledNotificationAsync(`${mineId}-pop`);
 }
@@ -102,5 +109,6 @@ export async function syncNotifications(mines: Mine[]) {
 }
 
 export async function cancelAll() {
+  if (IS_WEB) return;
   await Notifications.cancelAllScheduledNotificationsAsync();
 }

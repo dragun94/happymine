@@ -4,12 +4,13 @@ import { router, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 
 import { Colors } from '@/constants/theme';
 import { Keys } from '@/hooks/queries';
 import { fetchMines } from '@/lib/mines';
 import { syncNotifications } from '@/lib/notifications';
+import '@/lib/web-alert';
 import { AuthProvider, useAuth } from '@/providers/auth-provider';
 
 SplashScreen.preventAutoHideAsync();
@@ -74,7 +75,6 @@ function RootNavigator() {
 /** 로그인 상태일 때만 동작: 알림 다시 맞추기 + 알림 탭하면 지뢰 화면 열기 */
 function SignedInEffects() {
   const client = useQueryClient();
-  const lastResponse = Notifications.useLastNotificationResponse();
 
   // 앱을 켤 때와 다시 화면으로 돌아올 때 서버 기준으로 알림을 맞춰요.
   useEffect(() => {
@@ -92,6 +92,13 @@ function SignedInEffects() {
     });
     return () => sub.remove();
   }, [client]);
+
+  // 웹 미리보기에는 알림이 없어요.
+  return Platform.OS === 'web' ? null : <NotificationTapHandler />;
+}
+
+function NotificationTapHandler() {
+  const lastResponse = Notifications.useLastNotificationResponse();
 
   useEffect(() => {
     if (lastResponse?.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
